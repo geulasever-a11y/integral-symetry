@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מעבדת חקירה ושאלון אינטראקטיבי</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Font (Heebo) -->
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Heebo', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        
+        /* Graph Container */
+        .chart-container { 
+            position: relative; 
+            width: 100%; 
+            height: 400px; 
+            margin: 0 auto; 
+        }
+
+        .tab-active { 
+            border-bottom: 2px solid #2563eb; 
+            color: #1e40af; 
+            font-weight: 700; 
+            background-color: #eff6ff;
+        }
+
+        /* Math Styling */
+        .math-serif { font-family: 'Times New Roman', serif; font-style: italic; }
+        .math-ltr { direction: ltr; display: inline-block; unicode-bidi: embed; }
+
+        /* Button Effects */
+        .btn-func { transition: all 0.2s; border-width: 2px; }
+        .btn-func:hover { transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .btn-func.active { ring: 2px; ring-offset: 2px; }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none; 
+            background: transparent; 
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px; width: 20px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            margin-top: -8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px;
+            cursor: pointer; background: #cbd5e1;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 text-white w-8 h-8 flex items-center justify-center rounded-lg font-bold text-lg">∫</div>
+                <h1 class="text-lg md:text-xl font-bold text-gray-800">מעבדת חקירה: הצטברות וסימטריה</h1>
+            </div>
+            <nav class="flex gap-2 bg-gray-100 p-1 rounded-lg">
+                <button onclick="switchTab('visuals')" id="btn-visuals" class="tab-active px-4 py-1.5 text-sm rounded-md transition-all">מעבדה</button>
+                <button onclick="switchTab('quiz')" id="btn-quiz" class="px-4 py-1.5 text-sm text-gray-500 rounded-md hover:bg-white hover:shadow-sm transition-all">שאלון</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 py-6 w-full">
+
+        <!-- SECTION 1: VISUAL LAB -->
+        <div id="section-visuals" class="fade-in">
+            
+            <div class="flex flex-col md:flex-row gap-6">
+                
+                <!-- Right Column: Controls (1/3 width) -->
+                <!-- In RTL, first element is Right. -->
+                <div class="w-full md:w-1/3 space-y-6">
+                    
+                    <!-- 1. Function Selection -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">1. בחירת פונקציה</h3>
+                        <div class="space-y-3">
+                            <button onclick="setFunction('even')" id="btn-even" class="btn-func w-full py-3 px-4 rounded-lg border-blue-200 bg-blue-50 text-blue-900 text-right flex justify-between items-center active ring-blue-500">
+                                <div>
+                                    <span class="block font-bold">פונקציה זוגית</span>
+                                    <span class="text-xs opacity-75">סימטרית לציר Y</span>
+                                </div>
+                                <span class="math-serif math-ltr font-bold text-blue-600">x<sup>4</sup> - 4x<sup>2</sup></span>
+                            </button>
+                            
+                            <button onclick="setFunction('odd')" id="btn-odd" class="btn-func w-full py-3 px-4 rounded-lg border-orange-200 bg-orange-50 text-orange-900 text-right flex justify-between items-center">
+                                <div>
+                                    <span class="block font-bold">פונקציה אי-זוגית</span>
+                                    <span class="text-xs opacity-75">סימטרית לראשית</span>
+                                </div>
+                                <span class="math-serif math-ltr font-bold text-orange-600">x<sup>3</sup> - 4x</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 2. Integration Limits -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">2. גבולות האינטגרציה</h3>
+                        
+                        <div class="mb-6">
+                            <label class="flex justify-between text-sm font-medium mb-2">
+                                <span>התחום הסימטרי: <span class="math-ltr">[-a, a]</span></span>
+                                <span class="text-blue-600 font-bold bg-blue-50 px-2 rounded" id="rangeDisplay">a = 2.5</span>
+                            </label>
+                            <div class="relative h-6 flex items-center">
+                                <input type="range" id="rangeSlider" min="0.5" max="3.0" step="0.1" value="2.5" class="w-full z-10 relative">
+                                <!-- Tick marks visual guide -->
+                                <div class="absolute w-full flex justify-between px-1 text-[10px] text-gray-400 -bottom-4 font-mono">
+                                    <span>0.5</span>
+                                    <span>1.0</span>
+                                    <span>1.5</span>
+                                    <span>2.0</span>
+                                    <span>2.5</span>
+                                    <span>3.0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Result Box -->
+                        <div class="mt-8 p-4 bg-slate-50 rounded-lg border border-slate-200 text-center">
+                            <span class="block text-xs text-slate-500 mb-1">ערך האינטגרל (השטח המצטבר)</span>
+                            <div class="flex items-baseline justify-center gap-2 dir-ltr">
+                                <span class="math-serif text-xl text-gray-400">∫ f(x) dx = </span>
+                                <span id="integralResult" class="text-3xl font-mono font-bold text-gray-800 transition-colors">0.00</span>
+                            </div>
+                            <div id="symmetryBadge" class="mt-2 text-xs inline-block px-2 py-1 rounded-full font-medium">
+                                --
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Left Column: Graph (2/3 width) -->
+                <div class="w-full md:w-2/3">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-1 h-full flex flex-col">
+                        <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+                            <h3 class="font-bold text-gray-700">המחשה ויזואלית</h3>
+                            <div class="flex gap-2 text-xs">
+                                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-blue-500 opacity-20"></span> שטח חיובי</span>
+                                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-500 opacity-20"></span> שטח שלילי</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Chart Container -->
+                        <div class="flex-grow flex items-center justify-center p-4 bg-white relative">
+                            <!-- Axis Labels -->
+                            <div class="absolute top-2 left-1/2 transform -translate-x-1/2 text-xs font-serif text-gray-400 italic font-bold">y</div>
+                            <div class="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs font-serif text-gray-400 italic font-bold">x</div>
+                            
+                            <div class="chart-container">
+                                <canvas id="labChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SECTION 2: QUIZ -->
+        <div id="section-quiz" class="hidden max-w-3xl mx-auto">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-800">שאלון תרגול</h2>
+                    <span class="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-medium" id="qCountBadge">שאלה 1 מתוך 10</span>
+                </div>
+                
+                <!-- Progress -->
+                <div class="w-full bg-gray-100 rounded-full h-1.5 mb-8">
+                    <div id="quizBar" class="bg-blue-600 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+
+                <!-- Question Area -->
+                <div id="questionBox" class="min-h-[250px]">
+                    <!-- Questions injected here -->
+                </div>
+
+                <!-- Navigation -->
+                <div class="flex justify-between mt-8 pt-6 border-t border-gray-100">
+                    <button id="btnPrev" onclick="moveQ(-1)" disabled class="flex items-center gap-2 px-4 py-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-gray-500">
+                        <span>→</span> הקודם
+                    </button>
+                    <button id="btnNext" onclick="moveQ(1)" class="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm transition hover:shadow-md">
+                        הבא <span>←</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Result Screen (Hidden) -->
+            <div id="resultBox" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center max-w-2xl mx-auto mt-10">
+                <div class="inline-block p-4 rounded-full bg-yellow-50 text-5xl mb-6">🏆</div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">כל הכבוד! סיימת את השאלון</h3>
+                <p class="text-gray-500 mb-8">הנה סיכום הביצועים שלך</p>
+                
+                <div class="text-6xl font-black text-blue-600 mb-2 tracking-tight" id="finalScore">0</div>
+                <div class="text-sm text-gray-400 uppercase tracking-widest font-bold mb-8">ציון סופי</div>
+                
+                <button onclick="initQuiz()" class="px-8 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition shadow-lg hover:shadow-xl">התחל מחדש</button>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- VISUAL LAB LOGIC ---
+        const labState = {
+            func: 'even', 
+            limit: 2.5,
+            chart: null
+        };
+
+        const funcs = {
+            even: {
+                label: 'x⁴ - 4x²',
+                fn: x => Math.pow(x, 4) - 4 * Math.pow(x, 2),
+                color: 'rgba(59, 130, 246, 0.4)', 
+                negColor: 'rgba(239, 68, 68, 0.4)', 
+                borderColor: '#2563eb',
+                yMin: -5, yMax: 5
+            },
+            odd: {
+                label: 'x³ - 4x',
+                fn: x => Math.pow(x, 3) - 4 * x,
+                color: 'rgba(249, 115, 22, 0.4)', 
+                negColor: 'rgba(239, 68, 68, 0.4)', 
+                borderColor: '#ea580c',
+                yMin: -4, yMax: 4
+            }
+        };
+
+        function setFunction(type) {
+            labState.func = type;
+            const btnEven = document.getElementById('btn-even');
+            const btnOdd = document.getElementById('btn-odd');
+            
+            if (type === 'even') {
+                btnEven.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50', 'border-blue-500');
+                btnEven.classList.remove('border-blue-200');
+                btnOdd.classList.remove('ring-2', 'ring-orange-500', 'bg-orange-50', 'border-orange-500');
+                btnOdd.classList.add('border-orange-200', 'bg-white');
+            } else {
+                btnOdd.classList.add('ring-2', 'ring-orange-500', 'bg-orange-50', 'border-orange-500');
+                btnOdd.classList.remove('border-orange-200', 'bg-white');
+                btnEven.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50', 'border-blue-500');
+                btnEven.classList.add('border-blue-200');
+            }
+            updateLab();
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('labChart').getContext('2d');
+            
+            const gridColor = (context) => (context.tick.value === 0) ? '#334155' : '#e2e8f0';
+            const lineWidth = (context) => (context.tick.value === 0) ? 2 : 1;
+
+            labState.chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'f(x)',
+                        data: [],
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: 10 },
+                    scales: {
+                        x: { 
+                            type: 'linear', 
+                            min: -3.5, max: 3.5, 
+                            grid: { color: gridColor, lineWidth: lineWidth },
+                            ticks: { font: { family: 'Times New Roman', style: 'italic' } }
+                        },
+                        y: { 
+                            min: -5, max: 5, 
+                            grid: { color: gridColor, lineWidth: lineWidth },
+                            ticks: { display: true } 
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { 
+                            enabled: true,
+                            callbacks: {
+                                label: (ctx) => `f(${ctx.parsed.x.toFixed(2)}) = ${ctx.parsed.y.toFixed(2)}`
+                            }
+                        }
+                    }
+                }
+            });
+            
+            document.getElementById('rangeSlider').addEventListener('input', (e) => {
+                labState.limit = parseFloat(e.target.value);
+                updateLab();
+            });
+
+            updateLab();
+        }
+
+        function updateLab() {
+            const fConfig = funcs[labState.func];
+            const limit = labState.limit;
+            
+            labState.chart.options.scales.y.min = fConfig.yMin;
+            labState.chart.options.scales.y.max = fConfig.yMax;
+
+            const points = [];
+            let integral = 0;
+            const step = 0.05;
+
+            for (let x = -3.5; x <= 3.5; x += step) {
+                const y = fConfig.fn(x);
+                points.push({x, y});
+                if (x >= -limit && x <= limit) {
+                    integral += y * step;
+                }
+            }
+
+            const dataset = labState.chart.data.datasets[0];
+            dataset.data = points;
+            dataset.borderColor = fConfig.borderColor;
+            
+            dataset.segment = {
+                backgroundColor: (ctx) => {
+                    const x = ctx.p0.parsed.x;
+                    const y = ctx.p0.parsed.y;
+                    if (x >= -limit && x <= limit) {
+                        return y >= 0 ? 'rgba(59, 130, 246, 0.5)' : 'rgba(239, 68, 68, 0.4)';
+                    }
+                    return 'rgba(0,0,0,0)';
+                }
+            };
+            
+            labState.chart.update();
+
+            document.getElementById('rangeDisplay').textContent = `a = ${limit.toFixed(1)}`;
+            
+            const resEl = document.getElementById('integralResult');
+            let finalInt = Math.abs(integral) < 0.05 ? 0 : integral;
+            resEl.textContent = finalInt.toFixed(2);
+            
+            if (finalInt > 0.05) resEl.className = "text-3xl font-mono font-bold text-blue-600 transition-colors";
+            else if (finalInt < -0.05) resEl.className = "text-3xl font-mono font-bold text-red-500 transition-colors";
+            else resEl.className = "text-3xl font-mono font-bold text-green-600 transition-colors";
+
+            const badge = document.getElementById('symmetryBadge');
+            if (labState.func === 'odd') {
+                if (Math.abs(finalInt) < 0.1) {
+                    badge.textContent = "✔ שטח מתאפס (אי-זוגית בתחום סימטרי)";
+                    badge.className = "mt-2 text-xs inline-block px-3 py-1 rounded-full font-bold bg-green-100 text-green-700";
+                } else {
+                     badge.textContent = "מחשב...";
+                     badge.className = "hidden";
+                }
+            } else {
+                badge.textContent = "שטח סימטרי (כפול)";
+                badge.className = "mt-2 text-xs inline-block px-3 py-1 rounded-full font-medium bg-blue-100 text-blue-700";
+            }
+        }
+
+
+        // --- QUIZ DATA ---
+        // Questions 7 and 8 updated to specific requirements
+        const quizData = [
+            {
+                q: "נתונה פונקציה אי-זוגית <span class='math-serif math-ltr'>f(x)</span> המקיימת <span class='math-serif math-ltr'>f(-x) = -f(x)</span>. אם נתון ש- <span class='math-serif math-ltr'>f'(2) = 5</span>, מהו ערך <span class='math-serif math-ltr'>f'(-2)</span>?",
+                opts: ["-5", "5", "0", "לא ניתן לדעת"],
+                ans: 1, 
+                rationale: "הנגזרת של פונקציה אי-זוגית היא פונקציה זוגית, לכן <span class='math-ltr'>f'(-x) = f'(x)</span>."
+            },
+            {
+                q: "נתונה פונקציה זוגית <span class='math-serif math-ltr'>g(x)</span>. אם ידוע ש- <span class='math-serif math-ltr'>g'(3) = -4</span>, מהו ערכו של <span class='math-serif math-ltr'>g'(-3)</span>?",
+                opts: ["-4", "4", "0", "לא ניתן לדעת"],
+                ans: 1,
+                rationale: "הנגזרת של פונקציה זוגית היא אי-זוגית, לכן הסימן מתהפך."
+            },
+            {
+                q: "הנגזרת של פונקציה זוגית <span class='math-serif math-ltr'>g(x)</span> היא בהכרח:",
+                opts: ["פונקציה אי-זוגית", "פונקציה זוגית", "זוגית או אי-זוגית", "אף תשובה"],
+                ans: 0,
+                rationale: "שיפוע המשיק משתקף באופן הפוך (עליה הופכת לירידה בצד השני)."
+            },
+            {
+                q: "עבור פונקציה אי-זוגית <span class='math-serif math-ltr'>f(x)</span>, מהו ערך האינטגרל <span class='math-serif math-ltr text-lg'>∫<sub>-a</sub><sup>a</sup> f(x) dx</span>?",
+                opts: ["0", "<span class='math-ltr'>2 · ∫<sub>0</sub><sup>a</sup> f(x) dx</span>", "<span class='math-ltr'>-∫<sub>0</sub><sup>a</sup> f(x) dx</span>", "תלוי ב-a"],
+                ans: 0,
+                rationale: "השטחים החיוביים והשליליים מבטלים זה את זה בתחום סימטרי."
+            },
+            {
+                q: "נתונה <span class='math-serif math-ltr'>f(x)</span> אי-זוגית. נתון <span class='math-serif math-ltr'>∫<sub>0</sub><sup>3</sup> f(x) dx = 4</span>. חשבו את <span class='math-serif math-ltr text-lg font-bold'>∫<sub>-3</sub><sup>3</sup> (f(x) + 2) dx</span>.",
+                opts: ["0", "8", "12", "16"],
+                ans: 2,
+                rationale: "האינטגרל מפוצל ל-2 חלקים: <span class='math-ltr'>∫f(x)</span> שמתאפס, ושטח המלבן <span class='math-ltr'>∫2 dx</span> שהוא <span class='math-ltr'>2 · [3 - (-3)] = 12</span>."
+            },
+            {
+                q: "עבור פונקציה זוגית <span class='math-serif math-ltr'>g(x)</span>, איזו טענה נכונה?",
+                opts: [
+                    "<span class='math-ltr'>∫<sub>-a</sub><sup>a</sup> g(x) dx = 0</span>", 
+                    "<span class='math-ltr'>∫<sub>-a</sub><sup>a</sup> g(x) dx = 2∫<sub>0</sub><sup>a</sup> g(x) dx</span>", 
+                    "<span class='math-ltr'>∫<sub>-a</sub><sup>a</sup> g(x) dx = ∫<sub>0</sub><sup>2a</sup> g(x) dx</span>", 
+                    "אף תשובה"
+                ],
+                ans: 1,
+                rationale: "בפונקציה זוגית, השטח משמאל לציר שווה לשטח מימין לציר, לכן סוכמים אותם."
+            },
+            {
+                q: "תהי <span class='math-serif math-ltr'>f(x)</span> פונקציה רציפה ואי-זוגית המוגדרת לכל <span class='math-ltr'>x</span>. נגדיר את הפונקציה <span class='math-serif math-ltr'>g(x) = ∫<sub>-x</sub><sup>x</sup> f(t) dt</span>. איזו מהטענות הבאות מתארת נכון את <span class='math-ltr'>g(x)</span>?",
+                opts: ["היא הפונקציה הקבועה y=0", "היא פונקציה עולה לכל x", "היא פונקציה זוגית שאינה קבועה", "היא פונקציה אי-זוגית שאינה קבועה"],
+                ans: 0,
+                rationale: "נכון! עבור כל פונקציה אי-זוגית, האינטגרל בגבולות סימטריים [-x, x] הוא תמיד אפס."
+            },
+            {
+                q: "תהי <span class='math-serif math-ltr'>f(x)</span> פונקציה רציפה וזוגית. נגדיר פונקציית הצטברות <span class='math-serif math-ltr'>g(x) = ∫<sub>a</sub><sup>x</sup> f(t) dt</span>. מה חייב להיות הערך של הגבול התחתון <span class='math-ltr'>a</span> כדי ש-<span class='math-ltr'>g(x)</span> תהיה פונקציה אי-זוגית?",
+                opts: ["a=0", "a יכול להיות כל מספר ממשי", "a חייב להיות מספר חיובי", "אף ערך של a לא יבטיח זאת"],
+                ans: 0,
+                rationale: "נכון! פונקציה אי-זוגית חייבת לעבור בראשית הצירים (g(0)=0), וזה מתקיים רק אם האינטגרל מתחיל ב-0."
+            },
+            {
+                q: "נתונה <span class='math-serif math-ltr'>h(x)</span> זוגית. נגדיר <span class='math-serif math-ltr'>S(x) = ∫<sub>0</sub><sup>x</sup> h(t) dt</span>. איזו טענה נכונה?",
+                opts: ["S(x) זוגית", "S(x) אי-זוגית", "S(x) קבועה", "לא ניתן לדעת"],
+                ans: 1,
+                rationale: "פונקציה קדומה לפונקציה זוגית (שעוברת בראשית) היא אי-זוגית."
+            },
+            {
+                q: "האם האינטגרל הבלתי-מסוים של פונקציה זוגית הוא תמיד אי-זוגי?",
+                opts: ["תמיד", "אף פעם", "רק אם הקבוע C=0", "רק בפולינומים"],
+                ans: 2,
+                rationale: "קבוע אינטגרציה <span class='math-ltr'>C ≠ 0</span> מזיז את הפונקציה אנכית והורסת את הסימטריה לראשית."
+            }
+        ];
+
+        let qIdx = 0;
+        let score = 0;
+        let userAnswers = new Array(quizData.length).fill(null);
+
+        function initQuiz() {
+            qIdx = 0;
+            score = 0;
+            userAnswers.fill(null);
+            document.getElementById('questionBox').style.display = 'block';
+            document.getElementById('resultBox').classList.add('hidden');
+            document.querySelector('.flex.justify-between.mt-8').classList.remove('hidden');
+            renderQ();
+        }
+
+        function renderQ() {
+            const q = quizData[qIdx];
+            const hasAns = userAnswers[qIdx] !== null;
+            
+            // Badge update
+            document.getElementById('qCountBadge').innerText = `שאלה ${qIdx + 1} מתוך ${quizData.length}`;
+            
+            let html = `
+                <div class="fade-in">
+                    <h3 class="text-lg md:text-xl font-bold text-gray-800 mb-6 leading-relaxed">${qIdx + 1}. ${q.q}</h3>
+                    <div class="grid grid-cols-1 gap-3">
+            `;
+
+            q.opts.forEach((opt, i) => {
+                let cls = "w-full text-right p-4 rounded-lg border border-gray-200 hover:bg-slate-50 transition relative overflow-hidden ";
+                let explanation = "";
+                let mark = "";
+                
+                if (hasAns) {
+                    if (i === q.ans) {
+                        cls = "w-full text-right p-4 rounded-lg border-2 border-green-500 bg-green-50 text-green-900 font-medium shadow-sm";
+                        explanation = `<div class="mt-2 text-sm text-green-700 bg-white/50 p-2 rounded">${q.rationale}</div>`;
+                        mark = "<span class='absolute left-4 top-4 text-green-600 text-xl'>✔</span>";
+                    } else if (i === userAnswers[qIdx]) {
+                        cls = "w-full text-right p-4 rounded-lg border-2 border-red-400 bg-red-50 text-red-900";
+                        mark = "<span class='absolute left-4 top-4 text-red-500 text-xl'>✘</span>";
+                    } else {
+                        cls = "w-full text-right p-4 rounded-lg border border-gray-100 opacity-40 grayscale";
+                    }
+                }
+
+                html += `<button ${hasAns ? 'disabled' : ''} onclick="answer(${i})" class="${cls}">${opt} ${mark} ${explanation}</button>`;
+            });
+
+            html += `</div></div>`;
+            document.getElementById('questionBox').innerHTML = html;
+
+            // Update Nav
+            document.getElementById('btnPrev').disabled = qIdx === 0;
+            document.getElementById('btnNext').innerHTML = (qIdx === quizData.length - 1) ? `סיים <span class="font-sans font-bold">✓</span>` : `הבא <span class="font-sans font-bold">←</span>`;
+            
+            // Bar
+            const pct = ((qIdx + (hasAns?1:0)) / quizData.length) * 100;
+            document.getElementById('quizBar').style.width = `${pct}%`;
+        }
+
+        function answer(i) {
+            userAnswers[qIdx] = i;
+            if (i === quizData[qIdx].ans) score++;
+            renderQ();
+        }
+
+        function moveQ(dir) {
+            if (dir === 1 && qIdx === quizData.length - 1) {
+                endQuiz();
+                return;
+            }
+            qIdx += dir;
+            renderQ();
+        }
+
+        function endQuiz() {
+            document.getElementById('questionBox').innerHTML = '';
+            document.querySelector('.flex.justify-between.mt-8').classList.add('hidden'); // Hide nav
+            document.getElementById('resultBox').classList.remove('hidden');
+            document.getElementById('finalScore').innerText = `${score * 10}`;
+        }
+
+        // --- TABS & INIT ---
+        function switchTab(id) {
+            document.getElementById('section-visuals').classList.toggle('hidden', id !== 'visuals');
+            document.getElementById('section-quiz').classList.toggle('hidden', id !== 'quiz');
+            
+            const btnVisuals = document.getElementById('btn-visuals');
+            const btnQuiz = document.getElementById('btn-quiz');
+            
+            if (id === 'visuals') {
+                btnVisuals.className = 'tab-active px-4 py-1.5 text-sm rounded-md transition-all shadow-sm';
+                btnQuiz.className = 'px-4 py-1.5 text-sm text-gray-500 rounded-md hover:bg-white transition-all';
+            } else {
+                btnQuiz.className = 'tab-active px-4 py-1.5 text-sm rounded-md transition-all shadow-sm';
+                btnVisuals.className = 'px-4 py-1.5 text-sm text-gray-500 rounded-md hover:bg-white transition-all';
+                if (userAnswers[0] === null) initQuiz();
+            }
+        }
+
+        window.onload = () => {
+            initChart();
+            setFunction('even'); // Start with Even
+        };
+
+    </script>
+</body>
+</html>
